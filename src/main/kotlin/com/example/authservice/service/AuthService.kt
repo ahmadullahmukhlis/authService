@@ -10,43 +10,61 @@ import org.springframework.stereotype.Service
 class AuthService(
     private val userRepository: UserRepository,
     private val passwordEncoder: PasswordEncoder,
-    private val jwtService: JwtService
+    private val jwtService: JwtService,
+    private val refreshTokenStore: RefreshTokenStore
 ) {
 
     fun login(loginDto: LoginDto): Response {
-        // Determine if input is email or username
         val user = if (loginDto.username.contains("@")) {
             userRepository.findByEmail(loginDto.username)
         } else {
             userRepository.findByUsername(loginDto.username)
         }
 
-        // User existence check
-        if (user == null) {
-            return Response(status = false, message = "User not found", data = null)
-        }
+        if (user == null) return Response(false, "User not found", null)
+        if (!passwordEncoder.matches(loginDto.password, user.password)) return Response(false, "Invalid password", null)
+        if (!user.enabled) return Response(false, "User is disabled", null)
 
-        // Password validation
-        if (!passwordEncoder.matches(loginDto.password, user.password)) {
-            return Response(status = false, message = "Invalid password", data = null)
-        }
-
-        // User enabled check
-        if (!user.enabled) {
-            return Response(status = false, message = "User is disabled", data = null)
-        }
-
-        // Generate JWT tokens
         val accessToken = jwtService.generateAccessToken(user.username)
         val refreshToken = jwtService.generateRefreshToken(user.username)
 
-        // Build response with tokens
+        refreshTokenStore.addToken(user.username, refreshToken)
+
         val loginResponse = mapOf(
             "user" to user,
             "accessToken" to accessToken,
             "refreshToken" to refreshToken
         )
 
-        return Response(status = true, message = "Login successful", data = loginResponse)
+        return Response(true, "Login successful", loginResponse)
+    }
+
+    fun refreshToken(refreshToken: String): Response {
+        if (!refreshTokenStore.isValid(refreshToken)) {
+            return Response(false, "Invalid refresh token", null)
+        }
+
+        val username = refreshTokenStore.getUsername(refreshToken) ?: return Response(false, "Invalid refresh token", null)
+        val newAccessToken = jwtService.generateAccessToken(username)
+        val newRefreshToken = jwtService.generateRefreshToken(username)
+
+        refreshTokenStore.removeToken(refreshToken)
+        refreshTokenStore.addToken(username, newRefreshToken)
+
+        val response = mapOf(
+            "accessToken" to newAccessToken,
+            "refreshToken" to newRefreshToken
+        )
+
+        return Response(true, "Token refreshed", response)
+    }
+
+    fun logout(refreshToken: String): Response {
+        if (!refreshTokenStore.isValid(refreshToken)) {
+            return Response(false, "Invalid refresh token", null)
+        }
+
+        refreshTokenStore.removeToken(refreshToken)
+        return Response(true, "Logout successful", null)
     }
 }
