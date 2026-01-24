@@ -23,7 +23,7 @@ class SecurityConfig(
                     .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                     .requestMatchers("/error").permitAll()
                     .requestMatchers("/auth/**").permitAll()
-                    .requestMatchers("/api/client/**").permitAll()
+                    .requestMatchers("/api/users/**").permitAll()
                     .anyRequest().authenticated()
             }
             .formLogin { it.disable() }

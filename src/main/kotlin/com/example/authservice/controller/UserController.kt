@@ -10,7 +10,8 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/api/users")
 class UserController(
-    private val userService: UserService
+    private val userService: UserService,
+
 ) {
 
     /**
@@ -58,4 +59,5 @@ class UserController(
     fun enableUser(@PathVariable id: Long): Response {
         return userService.enabled(id)
     }
+
 }
