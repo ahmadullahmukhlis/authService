@@ -25,8 +25,8 @@ class AuthService(
         if (!passwordEncoder.matches(loginDto.password, user.password)) return Response(false, "Invalid password", null)
         if (!user.enabled) return Response(false, "User is disabled", null)
 
-        val accessToken = jwtService.generateAccessToken(user.username)
-        val refreshToken = jwtService.generateRefreshToken(user.username)
+        val accessToken = jwtService.generateAccessToken(user)
+        val refreshToken = jwtService.generateRefreshToken(user)
 
         refreshTokenStore.addToken(user.username, refreshToken)
 
@@ -44,9 +44,16 @@ class AuthService(
             return Response(false, "Invalid refresh token", null)
         }
 
-        val username = refreshTokenStore.getUsername(refreshToken) ?: return Response(false, "Invalid refresh token", null)
-        val newAccessToken = jwtService.generateAccessToken(username)
-        val newRefreshToken = jwtService.generateRefreshToken(username)
+        val username = refreshTokenStore.getUsername(refreshToken)
+            ?: return Response(false, "Invalid refresh token", null)
+
+        // ✅ FETCH USER ENTITY
+        val user = userRepository.findByUsername(username)
+            ?: return Response(false, "User not found", null)
+
+        // ✅ PASS USER TO JWT
+        val newAccessToken = jwtService.generateAccessToken(user)
+        val newRefreshToken = jwtService.generateRefreshToken(user)
 
         refreshTokenStore.removeToken(refreshToken)
         refreshTokenStore.addToken(username, newRefreshToken)

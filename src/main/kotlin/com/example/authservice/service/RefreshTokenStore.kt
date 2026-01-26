@@ -5,7 +5,9 @@ import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class RefreshTokenStore {
-    private val store = ConcurrentHashMap<String, String>() // refreshToken -> username
+
+    // refreshToken -> username
+    private val store: MutableMap<String, String> = ConcurrentHashMap()
 
     fun addToken(username: String, refreshToken: String) {
         store[refreshToken] = username
@@ -21,5 +23,10 @@ class RefreshTokenStore {
 
     fun getUsername(refreshToken: String): String? {
         return store[refreshToken]
+    }
+
+    // ✅ Optional: remove all tokens for user (logout from all devices)
+    fun removeAllForUser(username: String) {
+        store.entries.removeIf { it.value == username }
     }
 }
