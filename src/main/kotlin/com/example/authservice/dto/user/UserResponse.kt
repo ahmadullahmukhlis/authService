@@ -7,6 +7,7 @@ data class UserResponse (
     val id: String? = null,
     val firstName : String,
     val lastName : String,
+    val photo: String?=null,
     val username: String,
     val email: String,
     val enabled: Boolean,
@@ -21,6 +22,7 @@ fun UserEntity.toResponse(): UserResponse {
         firstName = this.FirstName,
         lastName = this.LastName,
         username = this.username,
+        photo = this.Photo,
         email = this.email,
         enabled = this.enabled,    // Error was here
         createdAt = this.createdAt, // Error was here

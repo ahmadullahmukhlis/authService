@@ -19,14 +19,17 @@ class UserEntity(
     @Column(unique = true, nullable = false)
     var username: String,
 
-    @Column(name = "first_name",unique = true, nullable = false)
+    @Column(name = "first_name",nullable = false)
     var FirstName: String,
 
-    @Column(name = "last_name",unique = true, nullable = false)
+    @Column(name = "last_name", nullable = false)
     var LastName: String,
 
     @Column(unique = true, nullable = false)
     var email: String,
+
+    @Column(name = "photo",nullable = true)
+    var Photo: String?=null,
 
     @Column(nullable = false)
     var password: String,
