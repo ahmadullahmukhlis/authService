@@ -10,6 +10,11 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.multipart.MultipartFile
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.util.*
 
 @Service
 class UserService(
@@ -17,74 +22,114 @@ class UserService(
     private val passwordEncoder: PasswordEncoder
 ) {
 
+    private val uploadDir = Paths.get("uploads")
+
+    /**
+     * CREATE USER
+     */
     @Transactional
-    fun createUser(request: CreateUserRequest): Response {
+    fun createUser(request: CreateUserRequest, photo: MultipartFile?): Response {
 
-
+        // Check username/email exists
         if (userRepository.existsByUsername(request.username)) {
-            return Response(status = false, message = "Username already exists", data = null)
+            return Response(false, "Username already exists", null)
+        }
+        if (userRepository.existsByEmail(request.email)) {
+            return Response(false, "Email already exists", null)
         }
 
-        if (userRepository.existsByEmail(request.email)) {
-            return Response(status = false, message = "Email already exists", data = null)
+        // Handle photo
+        var photoPath: String? = null
+        if (photo != null && !photo.isEmpty) {
+            validateImage(photo)
+
+            // ensure upload folder exists
+            Files.createDirectories(uploadDir)
+
+            val ext = photo.originalFilename?.substringAfterLast('.', "jpg")
+            val fileName = UUID.randomUUID().toString() + "." + ext
+
+            val filePath = uploadDir.resolve(fileName)
+            photo.transferTo(filePath.toFile())
+
+            // store relative path in DB
+            photoPath = "images/$fileName"
         }
 
         val user = UserEntity(
             username = request.username,
             FirstName = request.firstName,
-            LastName=request.lastName,
+            LastName = request.lastName,
             email = request.email,
             password = passwordEncoder.encode(request.password)!!,
-            enabled = true
+            enabled = true,
+            Photo = photoPath
         )
 
         val savedUser = userRepository.save(user)
-        return Response(status = true, message = "User has been created", data = savedUser.toResponse())
+        return Response(true, "User has been created", savedUser.toResponse())
     }
 
+    /**
+     * UPDATE USER (without photo for now)
+     */
     @Transactional
     fun update(id: Long, request: CreateUserRequest): Response {
-        val user = userRepository.findByIdOrNull(id)
-        return if (user != null) {
-            user.username = request.username
-            user.email = request.email
-            user.FirstName = request.firstName
-            user.LastName = request.lastName
+        val user = userRepository.findByIdOrNull(id) ?: return Response(false, "User not found", null)
 
-            // If password is not null/blank, encode it.
-            // We use !! because passwordEncoder (Java) might return a nullable String! platform type.
-            if (!request.password.isNullOrBlank()) {
-                user.password = passwordEncoder.encode(request.password)!!
-            }
+        user.username = request.username
+        user.email = request.email
+        user.FirstName = request.firstName
+        user.LastName = request.lastName
 
-            val updatedUser = userRepository.save(user)
-            Response(status = true, message = "User has been updated", data = updatedUser.toResponse())
-        } else {
-            Response(status = false, message = "User not found", data = null)
+        if (!request.password.isNullOrBlank()) {
+            user.password = passwordEncoder.encode(request.password)!!
         }
+
+        val updatedUser = userRepository.save(user)
+        return Response(true, "User has been updated", updatedUser.toResponse())
     }
 
-
+    /**
+     * GET USER BY HID
+     */
     fun edit(id: String): Response {
         val user = userRepository.findByuserHid(id)
         return if (user != null) {
-            Response(status = true, message = "User found", data = user.toResponse())
+            Response(true, "User found", user.toResponse())
         } else {
-            Response(status = false, message = "User not found", data = null)
+            Response(false, "User not found", null)
         }
     }
 
+    /**
+     * GET ALL USERS
+     */
     fun getAllUsers(): List<UserResponse> {
         return userRepository.findAll().map { it.toResponse() }
     }
 
+    /**
+     * ENABLE USER
+     */
     @Transactional
     fun enabled(id: Long): Response {
         val user = userRepository.findByIdOrNull(id)
-            ?: return Response(status = false, message = "The user is not found", data = null)
+            ?: return Response(false, "The user is not found", null)
 
         user.enabled = true
         val savedUser = userRepository.save(user)
-        return Response(status = true, message = "The user has been enabled", data = savedUser.toResponse())
+        return Response(true, "The user has been enabled", savedUser.toResponse())
+    }
+
+    /**
+     * IMAGE VALIDATION
+     */
+    private fun validateImage(file: MultipartFile) {
+        val allowedTypes = listOf("image/jpeg", "image/png", "image/webp")
+
+        if (file.isEmpty) throw RuntimeException("Photo is empty")
+        if (file.size > 5 * 1024 * 1024) throw RuntimeException("Max image size is 5MB")
+        if (file.contentType !in allowedTypes) throw RuntimeException("Only JPG, PNG, WEBP allowed")
     }
 }

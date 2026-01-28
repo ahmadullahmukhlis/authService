@@ -16,6 +16,7 @@ data class CreateUserRequest(
     @field:NotBlank(message = "last name is required")
     val lastName: String,
 
+
     @field:Email(message = "Email must be valid")
     @field:NotBlank(message = "Email is required")
     val email: String,

@@ -17,12 +17,19 @@ data class UserResponse (
 )
 
 fun UserEntity.toResponse(): UserResponse {
+    val fullPhotoUrl = this.Photo?.let { photoPath ->
+        org.springframework.web.servlet.support.ServletUriComponentsBuilder
+            .fromCurrentContextPath()
+            .pathSegment(photoPath.trimStart('/')) // Cleans up leading slashes automatically
+            .toUriString()
+    }
+
     return UserResponse(
         id = this.userHid,
         firstName = this.FirstName,
         lastName = this.LastName,
+        photo = fullPhotoUrl,
         username = this.username,
-        photo = this.Photo,
         email = this.email,
         enabled = this.enabled,    // Error was here
         createdAt = this.createdAt, // Error was here
