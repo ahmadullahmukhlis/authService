@@ -5,16 +5,21 @@ import java.time.LocalDateTime
 
 data class UserResponse (
     val id: String? = null,
+    val firstName : String,
+    val lastName : String,
     val username: String,
     val email: String,
     val enabled: Boolean,
     val createdAt: LocalDateTime?,
-    val updatedAt: LocalDateTime?
+    val updatedAt: LocalDateTime?,
+
 )
 
 fun UserEntity.toResponse(): UserResponse {
     return UserResponse(
         id = this.userHid,
+        firstName = this.FirstName,
+        lastName = this.LastName,
         username = this.username,
         email = this.email,
         enabled = this.enabled,    // Error was here
