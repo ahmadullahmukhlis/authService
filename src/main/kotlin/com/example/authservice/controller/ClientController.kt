@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
 @RestController
-@RequestMapping("/api/client")
+@RequestMapping("/client")
 class ClientController(
     private val clientService: ClientService
 ) {
