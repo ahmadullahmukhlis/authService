@@ -8,6 +8,7 @@ import com.example.authservice.repository.RoleRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import com.example.authservice.repository.PermissionRepository
 
 @Service
 class RoleService(
