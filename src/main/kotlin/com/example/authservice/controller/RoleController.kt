@@ -1,6 +1,6 @@
 package com.example.authservice.controller
 
-import com.example.authservice.dto.role.RoleRequest
+import com.example.authservice.dto.RoleGroup.RoleRequest
 import com.example.authservice.dto.response.Response
 import com.example.authservice.service.RoleService
 import jakarta.validation.Valid
@@ -14,13 +14,13 @@ class RoleController(private val roleService: RoleService) {
     @PostMapping
     fun create(@Valid @RequestBody request: RoleRequest): ResponseEntity<Response> {
         val res = roleService.createRole(request)
-        return if (res.success) ResponseEntity.ok(res) else ResponseEntity.badRequest().body(res)
+        return if (res.status) ResponseEntity.ok(res) else ResponseEntity.badRequest().body(res)
     }
 
     @PutMapping("/{id}")
     fun update(@PathVariable id: Long, @Valid @RequestBody request: RoleRequest): ResponseEntity<Response> {
         val res = roleService.updateRole(id, request)
-        return if (res.success) ResponseEntity.ok(res) else ResponseEntity.status(404).body(res)
+        return if (res.status) ResponseEntity.ok(res) else ResponseEntity.status(404).body(res)
     }
 
     @GetMapping
@@ -29,12 +29,12 @@ class RoleController(private val roleService: RoleService) {
     @GetMapping("/{id}")
     fun getById(@PathVariable id: Long): ResponseEntity<Response> {
         val res = roleService.getById(id)
-        return if (res.success) ResponseEntity.ok(res) else ResponseEntity.status(404).body(res)
+        return if (res.status) ResponseEntity.ok(res) else ResponseEntity.status(404).body(res)
     }
 
     @DeleteMapping("/{id}")
     fun delete(@PathVariable id: Long): ResponseEntity<Response> {
         val res = roleService.delete(id)
-        return if (res.success) ResponseEntity.ok(res) else ResponseEntity.status(404).body(res)
+        return if (res.status) ResponseEntity.ok(res) else ResponseEntity.status(404).body(res)
     }
 }
