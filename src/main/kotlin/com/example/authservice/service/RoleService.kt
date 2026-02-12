@@ -1,10 +1,8 @@
 package com.example.authservice.service
-
-import com.example.authservice.dto.role.RoleRequest
-import com.example.authservice.dto.role.toResponse
+import com.example.authservice.dto.RoleGroup.RoleRequest
+import com.example.authservice.dto.RoleGroup.toResponse
 import com.example.authservice.dto.response.Response
 import com.example.authservice.entity.RoleEntity
-import com.example.authservice.repository.PermissionRepository
 import com.example.authservice.repository.RoleGroupRepository
 import com.example.authservice.repository.RoleRepository
 import org.springframework.data.repository.findByIdOrNull
