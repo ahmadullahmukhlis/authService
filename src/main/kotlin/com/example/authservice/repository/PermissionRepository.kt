@@ -8,12 +8,17 @@ import org.springframework.stereotype.Repository
 interface PermissionRepository : JpaRepository<PermissionEntity, Long> {
 
     /**
-     * Find a permission by its unique name (e.g., 'READ_PRIVILEGE')
+     * Find by the unique security string (e.g., 'USER_CREATE')
+     */
+    fun findByPermission(permission: String): PermissionEntity?
+
+    /**
+     * Find by the display name (label)
      */
     fun findByName(name: String): PermissionEntity?
 
     /**
-     * Checks if a permission exists by name
+     * Quick check for existence by the unique security string
      */
-    fun existsByName(name: String): Boolean
+    fun existsByPermission(permission: String): Boolean
 }
