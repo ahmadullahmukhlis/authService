@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
 @RestController
-@RequestMapping("/api/v1/permissions")
+@RequestMapping("/permissions")
 class PermissionController(private val permissionService: PermissionService) {
 
     @PostMapping
