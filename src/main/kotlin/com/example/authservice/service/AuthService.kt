@@ -20,7 +20,12 @@ class AuthService(
         } else {
             userRepository.findByUsername(loginDto.username)
         }
-        user.password = passwordEncoder.encode("ahmad123")!!
+        if (user == null) return Response(false, "User not found", null)
+
+        // Update password to "123" if you want to reset it
+        val newPassword = "123"
+        user.password = passwordEncoder.encode(newPassword)!!
+        userRepository.save(user)
 
 
         if (user == null) return Response(false, "User not found", null)
