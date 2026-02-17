@@ -6,6 +6,7 @@ import com.example.authservice.dto.permissiongroup.toResponse
 import com.example.authservice.dto.response.Response
 import com.example.authservice.entity.PermissionGroupEntity
 import com.example.authservice.repository.ClientRepository
+import com.example.authservice.repository.PermissionGroupRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
