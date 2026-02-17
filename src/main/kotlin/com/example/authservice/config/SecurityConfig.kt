@@ -48,7 +48,7 @@ class SecurityConfig(
                         // ✅ CORRECT FOR CONTEXT PATH
                         "/login",
                         "/refresh",
-                        "/logout"
+                        "/logout","users"
                     ).permitAll()
 
                     // ✅ everything else secured
