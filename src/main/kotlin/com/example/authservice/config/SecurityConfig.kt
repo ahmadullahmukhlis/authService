@@ -70,13 +70,21 @@ class SecurityConfig(
     fun corsConfigurationSource(): CorsConfigurationSource {
         val config = CorsConfiguration()
 
-        config.allowedOrigins = listOf("http://localhost:4200") // Angular
+        // ✅ Allow Angular dev server (any port)
+        config.allowedOriginPatterns = listOf("http://localhost:*")
+
+        // ✅ Allow all methods
         config.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
+
+        // ✅ Allow all headers (important for Authorization)
         config.allowedHeaders = listOf("*")
+
+        // ✅ Allow credentials (cookies / auth)
         config.allowCredentials = true
 
         val source = UrlBasedCorsConfigurationSource()
         source.registerCorsConfiguration("/**", config)
         return source
     }
+
 }
