@@ -9,6 +9,6 @@ data class LoginDto(
     val username: String,
 
     @field:NotBlank(message = "Password is required")
-    @field:Size(min = 6, message = "Password must be at least 6 characters")
+    @field:Size(min = 3, message = "Password must be at least 6 characters")
     val password: String
 )
