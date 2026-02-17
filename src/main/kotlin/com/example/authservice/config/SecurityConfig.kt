@@ -45,7 +45,8 @@ class SecurityConfig(
                         "/swagger-ui.html",
                         "/error",
                         "/auth/**",
-                        "/api/auth/**"
+                        "/api/auth/**",
+                        "/api/auth-service/**"
                     ).permitAll()
 
                     // ✅ everything else secured
