@@ -44,9 +44,11 @@ class SecurityConfig(
                         "/v3/api-docs/**",
                         "/swagger-ui.html",
                         "/error",
-                        "/auth/**",
-                        "/api/auth/**",
-                        "/api/auth-service/**"
+
+                        // ✅ CORRECT FOR CONTEXT PATH
+                        "/login",
+                        "/refresh",
+                        "/logout"
                     ).permitAll()
 
                     // ✅ everything else secured
