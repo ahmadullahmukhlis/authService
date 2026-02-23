@@ -21,27 +21,39 @@ class JwtFilter(
         response: HttpServletResponse,
         filterChain: FilterChain
     ) {
-        // Get Authorization header
+
         val authHeader = request.getHeader("Authorization")
 
-        // Check if header exists and starts with "Bearer "
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            val token = authHeader.substring(7) // Remove "Bearer " prefix
+        if (!authHeader.isNullOrEmpty() && authHeader.startsWith("Bearer ")) {
 
-            // Validate token
-            if (jwtService.validateToken(token)) {
+            val token = authHeader.substring(7)
+
+            try {
                 val username = jwtService.extractUsername(token)
 
-                // Load user details and set authentication
-                val userDetails = userDetailsService.loadUserByUsername(username)
-                val auth = UsernamePasswordAuthenticationToken(
-                    userDetails, null, userDetails.authorities
-                )
-                SecurityContextHolder.getContext().authentication = auth
+                if (username != null &&
+                    SecurityContextHolder.getContext().authentication == null &&
+                    jwtService.validateToken(token)
+                ) {
+
+                    val userDetails = userDetailsService.loadUserByUsername(username)
+
+                    val auth = UsernamePasswordAuthenticationToken(
+                        userDetails,
+                        null,
+                        userDetails.authorities
+                    )
+
+                    SecurityContextHolder.getContext().authentication = auth
+                }
+
+            } catch (ex: Exception) {
+                // Token expired, malformed, etc.
+                println("JWT validation error: ${ex.message}")
             }
         }
 
-        // Continue filter chain
+        // Continue filter chain no matter what
         filterChain.doFilter(request, response)
     }
 }

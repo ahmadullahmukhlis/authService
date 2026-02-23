@@ -4,16 +4,17 @@ import com.example.authservice.entity.UserEntity
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.util.*
 import javax.crypto.SecretKey
 
 @Service
-class JwtService {
+class JwtService(
+    @Value("\${jwt.auth.secret}") private val jwtSecret: String
+) {
 
-    private val secretKey: SecretKey = Keys.hmacShaKeyFor(
-        "my-super-secret-key-for-jwt-2026-must-be-at-least-32-characters-long".toByteArray()
-    )
+    private val secretKey: SecretKey = Keys.hmacShaKeyFor(jwtSecret.toByteArray())
 
     private val ACCESS_TOKEN_EXPIRATION = 15 * 60 * 1000
     private val REFRESH_TOKEN_EXPIRATION = 7 * 24 * 60 * 60 * 1000

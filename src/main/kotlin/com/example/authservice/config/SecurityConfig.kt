@@ -1,90 +1,114 @@
 package com.example.authservice.config
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
+import org.springframework.http.MediaType
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
+import org.springframework.core.annotation.Order
+import org.springframework.core.Ordered
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.CorsConfigurationSource
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
+import org.springframework.web.filter.CorsFilter
 
 @Configuration
 @EnableWebSecurity
 class SecurityConfig(
-    private val jwtFilter: JwtFilter
+    private val jwtFilter: JwtFilter,
+    @Value("\${app.cors.allowed-origins:*}") private val allowedOrigins: String
 ) {
 
     @Bean
     fun filterChain(http: HttpSecurity): SecurityFilterChain {
+
         http
-            // ✅ ENABLE CORS
-            .cors { }
-
-            // ✅ DISABLE CSRF (API)
+            .cors { it.configurationSource(corsConfigurationSource()) }
             .csrf { it.disable() }
-
-            // ✅ NO SESSION (JWT)
             .sessionManagement {
                 it.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             }
-
-            // ✅ AUTH RULES
             .authorizeHttpRequests { auth ->
                 auth
-                    // ✅ allow preflight
+                    // allow preflight
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                    // ✅ public endpoints
+                    // public endpoints
                     .requestMatchers(
                         "/swagger-ui/**",
                         "/v3/api-docs/**",
                         "/swagger-ui.html",
                         "/error",
-
-                        // ✅ CORRECT FOR CONTEXT PATH
                         "/login",
-                        "/refresh",
-                        "/logout","users"
+                        "/logout",
+                        "/users/**"
                     ).permitAll()
 
-                    // ✅ everything else secured
                     .anyRequest().authenticated()
             }
-
-            // ✅ DISABLE DEFAULT LOGIN
+            .exceptionHandling {
+                it.authenticationEntryPoint { _, response, _ ->
+                    response.status = 401
+                    response.contentType = MediaType.APPLICATION_JSON_VALUE
+                    response.writer.write("""{"status":false,"message":"Unauthorized"}""")
+                }
+                it.accessDeniedHandler { _, response, _ ->
+                    response.status = 403
+                    response.contentType = MediaType.APPLICATION_JSON_VALUE
+                    response.writer.write("""{"status":false,"message":"Forbidden"}""")
+                }
+            }
             .formLogin { it.disable() }
             .httpBasic { it.disable() }
 
-        // ✅ JWT FILTER
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter::class.java)
 
         return http.build()
     }
 
-    // ✅ CORS CONFIGURATION
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
+
         val config = CorsConfiguration()
 
-        // ✅ Allow Angular dev server (any port)
-        config.allowedOriginPatterns = listOf("http://localhost:*")
+        val origins = allowedOrigins
+            .split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
 
-        // ✅ Allow all methods
-        config.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
+        val hasWildcard = origins.any { it.contains("*") }
+        if (hasWildcard) {
+            // Use patterns to support wildcards like "*" or "https://*.example.com"
+            config.allowedOriginPatterns = origins
+        } else {
+            config.allowedOrigins = origins
+        }
 
-        // ✅ Allow all headers (important for Authorization)
+        config.allowedMethods = listOf(
+            "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
+        )
+
         config.allowedHeaders = listOf("*")
 
-        // ✅ Allow credentials (cookies / auth)
-        config.allowCredentials = true
+        // If you allow all origins, credentials must be false by spec
+        config.allowCredentials = !origins.contains("*")
+        config.maxAge = 3600L
 
         val source = UrlBasedCorsConfigurationSource()
         source.registerCorsConfiguration("/**", config)
+
         return source
     }
 
+    // Ensure CORS headers are added even on error responses
+    @Bean
+    @Order(Ordered.HIGHEST_PRECEDENCE)
+    fun corsFilter(): CorsFilter {
+        return CorsFilter(corsConfigurationSource())
+    }
 }
