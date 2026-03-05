@@ -14,8 +14,8 @@ class LoginController(
 
     @PostMapping("/login")
     fun login(
-        @RequestHeader("X-Client-Id") clientId: String,
-        @RequestHeader("X-Client-Assertion") clientAssertion: String,
+        @RequestHeader("X-Client-Id", required = false) clientId: String?,
+        @RequestHeader("X-Client-Assertion", required = false) clientAssertion: String?,
         @Valid @RequestBody request: LoginDto
     ): Response {
         return authService.login(clientId, clientAssertion, request)

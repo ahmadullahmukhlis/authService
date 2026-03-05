@@ -19,8 +19,13 @@ class AuthService(
     private val totpService: TotpService
 ) {
 
-    fun login(clientId: String, clientAssertion: String, loginDto: LoginDto): Response {
-        clientAssertionService.validate(clientId, clientAssertion)
+    fun login(clientId: String?, clientAssertion: String?, loginDto: LoginDto): Response {
+        if (!clientId.isNullOrBlank() || !clientAssertion.isNullOrBlank()) {
+            if (clientId.isNullOrBlank() || clientAssertion.isNullOrBlank()) {
+                return Response(false, "Client headers incomplete", null)
+            }
+            clientAssertionService.validate(clientId, clientAssertion)
+        }
 
         val user = if (loginDto.username.contains("@")) {
             userRepository.findByEmail(loginDto.username)
@@ -35,7 +40,7 @@ class AuthService(
         if (user.client?.clientId == null) {
             return Response(false, "User has no client assigned", null)
         }
-        if (user.client?.clientId != clientId) {
+        if (!clientId.isNullOrBlank() && user.client?.clientId != clientId) {
             return Response(false, "User not allowed for this client", null)
         }
         if (user.mfaEnabled) {
@@ -46,7 +51,9 @@ class AuthService(
         }
 
         val accessToken = jwtService.generateAccessToken(user)
-        val refreshToken = refreshTokenService.create(user, clientId)
+        val effectiveClientId = clientId ?: user.client?.clientId
+            ?: return Response(false, "User has no client assigned", null)
+        val refreshToken = refreshTokenService.create(user, effectiveClientId)
 
         val loginResponse = mapOf(
             "user" to user.toResponse(),
