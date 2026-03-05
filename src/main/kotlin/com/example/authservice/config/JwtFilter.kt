@@ -33,18 +33,21 @@ class JwtFilter(
 
                 if (username != null &&
                     SecurityContextHolder.getContext().authentication == null &&
-                    jwtService.validateToken(token)
+                    jwtService.validateToken(token) &&
+                    jwtService.extractTokenType(token) == "access"
                 ) {
 
-                    val userDetails = userDetailsService.loadUserByUsername(username)
-
-                    val auth = UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.authorities
-                    )
-
-                    SecurityContextHolder.getContext().authentication = auth
+                    try {
+                        val userDetails = userDetailsService.loadUserByUsername(username)
+                        val auth = UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.authorities
+                        )
+                        SecurityContextHolder.getContext().authentication = auth
+                    } catch (ex: Exception) {
+                        // Ignore if user not found (e.g., client credentials token)
+                    }
                 }
 
             } catch (ex: Exception) {

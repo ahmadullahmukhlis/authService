@@ -37,10 +37,9 @@ class ClientController(
 
     @GetMapping("/by_client/{id}/users")
     fun withUser(@PathVariable id: String): ResponseEntity<Response> {
-        val response = clientService.loadwithUser(id, ) // load with users
+        val response = clientService.loadwithUser(id) // load with users
         return ResponseEntity.ok(response)
     }
 
 }
-
 

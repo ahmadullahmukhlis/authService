@@ -23,5 +23,7 @@ data class CreateUserRequest(
 
     @field:NotBlank(message = "Password is required")
     @field:Size(min = 8, message = "Password must be at least 8 characters")
-    val password: String
+    val password: String,
+
+    val clientId: String? = null
 )

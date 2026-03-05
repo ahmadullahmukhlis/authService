@@ -49,6 +49,21 @@ class UserEntity(
     @Column(name = "user_hid", nullable = false, unique = true, length = 512)
     var userHid: String = "",
 
+    @Column(name = "mfa_enabled", nullable = false)
+    var mfaEnabled: Boolean = false,
+
+    @Column(name = "mfa_secret", columnDefinition = "TEXT")
+    var mfaSecret: String? = null,
+
+    @Column(name = "email_verified", nullable = false)
+    var emailVerified: Boolean = false,
+
+    @Column(name = "email_verification_code_hash", columnDefinition = "TEXT")
+    var emailVerificationCodeHash: String? = null,
+
+    @Column(name = "email_verification_expires_at")
+    var emailVerificationExpiresAt: LocalDateTime? = null,
+
     @ManyToOne
     @JoinColumn(name = "client_id")
     var client: ClientEntity? = null

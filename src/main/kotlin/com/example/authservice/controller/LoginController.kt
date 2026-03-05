@@ -4,11 +4,7 @@ import com.example.authservice.dto.response.Response
 import com.example.authservice.dto.user.LoginDto
 import com.example.authservice.service.AuthService
 import jakarta.validation.Valid
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping()
@@ -17,17 +13,29 @@ class LoginController(
 ) {
 
     @PostMapping("/login")
-    fun login(@Valid @RequestBody request: LoginDto): Response {
-        return authService.login(request)
+    fun login(
+        @RequestHeader("X-Client-Id") clientId: String,
+        @RequestHeader("X-Client-Assertion") clientAssertion: String,
+        @Valid @RequestBody request: LoginDto
+    ): Response {
+        return authService.login(clientId, clientAssertion, request)
     }
 
     @PostMapping("/refresh")
-    fun refresh(@RequestParam refreshToken: String): Response {
-        return authService.refreshToken(refreshToken)
+    fun refresh(
+        @RequestHeader("X-Client-Id") clientId: String,
+        @RequestHeader("X-Client-Assertion") clientAssertion: String,
+        @RequestParam refreshToken: String
+    ): Response {
+        return authService.refreshToken(clientId, clientAssertion, refreshToken)
     }
 
     @PostMapping("/logout")
-    fun logout(@RequestParam refreshToken: String): Response {
-        return authService.logout(refreshToken)
+    fun logout(
+        @RequestHeader("X-Client-Id") clientId: String,
+        @RequestHeader("X-Client-Assertion") clientAssertion: String,
+        @RequestParam refreshToken: String
+    ): Response {
+        return authService.logout(clientId, clientAssertion, refreshToken)
     }
 }

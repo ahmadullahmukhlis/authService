@@ -29,6 +29,19 @@ class GlobalExceptionHandler {
     }
 
     /**
+     * HANDLER 2: Client/Auth Errors (401)
+     */
+    @ExceptionHandler(IllegalArgumentException::class)
+    fun handleIllegalArgument(ex: IllegalArgumentException): ResponseEntity<Response> {
+        val response = Response(
+            status = false,
+            message = ex.message ?: "Unauthorized",
+            data = null
+        )
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response)
+    }
+
+    /**
      * HANDLER 2: All Other Errors (500 Internal Server Error)
      * Catches database crashes, null pointers, etc.
      */

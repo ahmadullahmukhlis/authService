@@ -44,8 +44,13 @@ class SecurityConfig(
                         "/v3/api-docs/**",
                         "/swagger-ui.html",
                         "/error",
+                        "/.well-known/jwks.json",
+                        "/.well-known/openid-configuration",
                         "/login",
+                        "/refresh",
                         "/logout",
+                        "/oauth2/token",
+                        "/oauth2/introspect",
                         "/users/**"
                     ).permitAll()
 

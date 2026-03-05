@@ -5,6 +5,7 @@ import com.example.authservice.dto.user.CreateUserRequest
 import com.example.authservice.dto.user.UserResponse
 import com.example.authservice.dto.user.toResponse
 import com.example.authservice.entity.UserEntity
+import com.example.authservice.repository.ClientRepository
 import com.example.authservice.repository.UserRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -19,7 +20,8 @@ import java.util.*
 @Service
 class UserService(
     private val userRepository: UserRepository,
-    private val passwordEncoder: PasswordEncoder
+    private val passwordEncoder: PasswordEncoder,
+    private val clientRepository: ClientRepository
 ) {
 
     private val uploadDir = Paths.get("uploads")
@@ -66,6 +68,12 @@ class UserService(
             Photo = photoPath
         )
 
+        if (!request.clientId.isNullOrBlank()) {
+            val client = clientRepository.findByClientId(request.clientId!!)
+                ?: return Response(false, "Client not found", null)
+            user.client = client
+        }
+
         val savedUser = userRepository.save(user)
         return Response(true, "User has been created", savedUser.toResponse())
     }
@@ -77,6 +85,11 @@ class UserService(
     fun update(id: Long, request: CreateUserRequest): Response {
         val user = userRepository.findByIdOrNull(id) ?: return Response(false, "User not found", null)
 
+        val targetClientId = request.clientId ?: user.client?.clientId
+        if (user.client?.clientId != null && user.client?.clientId != targetClientId) {
+            return Response(false, "User not allowed for this client", null)
+        }
+
         user.username = request.username
         user.email = request.email
         user.firstName = request.firstName
@@ -86,6 +99,12 @@ class UserService(
             user.password = passwordEncoder.encode(request.password)!!
         }
 
+        if (!request.clientId.isNullOrBlank()) {
+            val client = clientRepository.findByClientId(request.clientId!!)
+                ?: return Response(false, "Client not found", null)
+            user.client = client
+        }
+
         val updatedUser = userRepository.save(user)
         return Response(true, "User has been updated", updatedUser.toResponse())
     }
@@ -93,9 +112,9 @@ class UserService(
     /**
      * GET USER BY HID
      */
-    fun edit(id: String): Response {
+    fun edit(id: String, clientId: String): Response {
         val user = userRepository.findByuserHid(id)
-        return if (user != null) {
+        return if (user != null && user.client?.clientId == clientId) {
             Response(true, "User found", user.toResponse())
         } else {
             Response(false, "User not found", null)
@@ -105,8 +124,8 @@ class UserService(
     /**
      * GET ALL USERS
      */
-    fun getAllUsers(): List<UserResponse> {
-        return userRepository.findAll().map { it.toResponse() }
+    fun getAllUsers(clientId: String): List<UserResponse> {
+        return userRepository.findAllByClient_ClientId(clientId).map { it.toResponse() }
     }
 
     /**

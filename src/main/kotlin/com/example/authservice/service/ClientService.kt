@@ -4,17 +4,16 @@ import com.example.authservice.dto.client.ClientResponse
 import com.example.authservice.dto.client.CreateClientRequest
 import com.example.authservice.dto.client.toResponse
 import com.example.authservice.dto.response.Response
-import com.example.authservice.encryption.IdEncryption
 import com.example.authservice.entity.ClientEntity
 import com.example.authservice.repository.ClientRepository
-import org.springframework.http.ResponseEntity
+import com.example.authservice.security.SecureIdGenerator
+import com.example.authservice.security.PemUtils
 import org.springframework.stereotype.Service
-import java.util.*
 
 @Service
 class ClientService(
     private val clientRespository: ClientRepository,
-    private val idEncryption: IdEncryption
+    private val idGenerator: SecureIdGenerator
 ) {
 
     fun index(): List<ClientResponse> =
@@ -34,17 +33,25 @@ class ClientService(
         // 🔐 Ensure unique clientId
         var clientId: String
         do {
-            clientId = idEncryption.generateUniqueEncryptedId()
+            clientId = idGenerator.generateId()
         } while (clientRespository.findByClientId(clientId) != null)
 
-        val publicKeyRaw = "public_${request.name}_${UUID.randomUUID()}"
-        val privateKeyRaw = "private_${request.name}_${UUID.randomUUID()}"
+        // Validate public key format
+        try {
+            PemUtils.parseRsaPublicKey(request.publicKey)
+        } catch (ex: Exception) {
+            return Response(false, "Invalid public key format", null)
+        }
 
         val client = ClientEntity(
             name = request.name,
             clientId = clientId,
-            publicKey = idEncryption.encrypt(publicKeyRaw),
-            privateKey = idEncryption.encrypt(privateKeyRaw)
+            publicKey = request.publicKey.trim(),
+            privateKey = "",
+            redirectUris = request.redirectUris.joinToString(","),
+            allowedGrantTypes = request.allowedGrantTypes.joinToString(","),
+            allowedScopes = request.allowedScopes.joinToString(","),
+            requirePkce = request.requirePkce
         )
 
         clientRespository.save(client)
@@ -60,7 +67,17 @@ class ClientService(
         val client = clientRespository.findByClientId(id)
             ?: return Response(false, "Client not found", null)
 
+        try {
+            PemUtils.parseRsaPublicKey(request.publicKey)
+        } catch (ex: Exception) {
+            return Response(false, "Invalid public key format", null)
+        }
         client.name = request.name
+        client.publicKey = request.publicKey.trim()
+        client.redirectUris = request.redirectUris.joinToString(",")
+        client.allowedGrantTypes = request.allowedGrantTypes.joinToString(",")
+        client.allowedScopes = request.allowedScopes.joinToString(",")
+        client.requirePkce = request.requirePkce
         clientRespository.save(client)
 
         return Response(true, "Client updated", client.toResponse())

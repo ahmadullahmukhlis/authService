@@ -1,8 +1,11 @@
 package com.example.authservice.service
 
-import com.example.authservice.dto.user.LoginDto
 import com.example.authservice.dto.response.Response
+import com.example.authservice.dto.user.LoginDto
+import com.example.authservice.dto.user.toResponse
 import com.example.authservice.repository.UserRepository
+import com.example.authservice.security.ClientAssertionService
+import com.example.authservice.security.TotpService
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 
@@ -11,10 +14,14 @@ class AuthService(
     private val userRepository: UserRepository,
     private val passwordEncoder: PasswordEncoder,
     private val jwtService: JwtService,
-    private val refreshTokenStore: RefreshTokenStore
+    private val refreshTokenService: RefreshTokenService,
+    private val clientAssertionService: ClientAssertionService,
+    private val totpService: TotpService
 ) {
 
-    fun login(loginDto: LoginDto): Response {
+    fun login(clientId: String, clientAssertion: String, loginDto: LoginDto): Response {
+        clientAssertionService.validate(clientId, clientAssertion)
+
         val user = if (loginDto.username.contains("@")) {
             userRepository.findByEmail(loginDto.username)
         } else {
@@ -22,23 +29,27 @@ class AuthService(
         }
         if (user == null) return Response(false, "User not found", null)
 
-        // Update password to "123" if you want to reset it
-        val newPassword = "123"
-        user.password = passwordEncoder.encode(newPassword)!!
-        userRepository.save(user)
-
-
         if (user == null) return Response(false, "User not found", null)
         if (!passwordEncoder.matches(loginDto.password, user.password)) return Response(false, "Invalid password", null)
         if (!user.enabled) return Response(false, "User is disabled", null)
+        if (user.client?.clientId == null) {
+            return Response(false, "User has no client assigned", null)
+        }
+        if (user.client?.clientId != clientId) {
+            return Response(false, "User not allowed for this client", null)
+        }
+        if (user.mfaEnabled) {
+            val code = loginDto.mfaCode ?: return Response(false, "MFA code required", null)
+            if (!totpService.verifyCode(user.mfaSecret ?: "", code)) {
+                return Response(false, "Invalid MFA code", null)
+            }
+        }
 
         val accessToken = jwtService.generateAccessToken(user)
-        val refreshToken = jwtService.generateRefreshToken(user)
-
-        refreshTokenStore.addToken(user.username, refreshToken)
+        val refreshToken = refreshTokenService.create(user, clientId)
 
         val loginResponse = mapOf(
-            "user" to user,
+            "user" to user.toResponse(),
             "accessToken" to accessToken,
             "refreshToken" to refreshToken
         )
@@ -46,24 +57,16 @@ class AuthService(
         return Response(true, "Login successful", loginResponse)
     }
 
-    fun refreshToken(refreshToken: String): Response {
-        if (!refreshTokenStore.isValid(refreshToken)) {
+    fun refreshToken(clientId: String, clientAssertion: String, refreshToken: String): Response {
+        clientAssertionService.validate(clientId, clientAssertion)
+
+        val (newRefreshToken, user) = try {
+            refreshTokenService.rotate(refreshToken, clientId)
+        } catch (ex: Exception) {
             return Response(false, "Invalid refresh token", null)
         }
 
-        val username = refreshTokenStore.getUsername(refreshToken)
-            ?: return Response(false, "Invalid refresh token", null)
-
-        // ✅ FETCH USER ENTITY
-        val user = userRepository.findByUsername(username)
-            ?: return Response(false, "User not found", null)
-
-        // ✅ PASS USER TO JWT
         val newAccessToken = jwtService.generateAccessToken(user)
-        val newRefreshToken = jwtService.generateRefreshToken(user)
-
-        refreshTokenStore.removeToken(refreshToken)
-        refreshTokenStore.addToken(username, newRefreshToken)
 
         val response = mapOf(
             "accessToken" to newAccessToken,
@@ -73,12 +76,10 @@ class AuthService(
         return Response(true, "Token refreshed", response)
     }
 
-    fun logout(refreshToken: String): Response {
-        if (!refreshTokenStore.isValid(refreshToken)) {
-            return Response(false, "Invalid refresh token", null)
-        }
+    fun logout(clientId: String, clientAssertion: String, refreshToken: String): Response {
+        clientAssertionService.validate(clientId, clientAssertion)
 
-        refreshTokenStore.removeToken(refreshToken)
+        refreshTokenService.revoke(refreshToken, clientId)
         return Response(true, "Logout successful", null)
     }
 }

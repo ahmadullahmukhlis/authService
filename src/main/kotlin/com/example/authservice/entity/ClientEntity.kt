@@ -22,6 +22,18 @@ class ClientEntity(
     @Column(nullable = false, columnDefinition = "TEXT")
     var privateKey: String = "",
 
+    @Column(name = "redirect_uris", columnDefinition = "TEXT")
+    var redirectUris: String? = null,
+
+    @Column(name = "allowed_grant_types", columnDefinition = "TEXT")
+    var allowedGrantTypes: String? = null,
+
+    @Column(name = "allowed_scopes", columnDefinition = "TEXT")
+    var allowedScopes: String? = null,
+
+    @Column(name = "require_pkce", nullable = false)
+    var requirePkce: Boolean = true,
+
     @OneToMany(mappedBy = "client", fetch = FetchType.LAZY)
     var users: List<UserEntity> = emptyList()
 )

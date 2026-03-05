@@ -10,5 +10,7 @@ data class LoginDto(
 
     @field:NotBlank(message = "Password is required")
     @field:Size(min = 3, message = "Password must be at least 6 characters")
-    val password: String
+    val password: String,
+
+    val mfaCode: String? = null
 )
