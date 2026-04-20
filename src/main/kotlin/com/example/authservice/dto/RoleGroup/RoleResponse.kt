@@ -7,6 +7,7 @@ data class RoleResponse(
     val name: String,
     val roleGroupId: Long?,
     val roleGroupName: String?,
+    val roleGroup: String?,
     val permissions: List<PermissionSimpleResponse> = emptyList()
 )
 
@@ -25,6 +26,7 @@ fun RoleEntity.toResponse(): RoleResponse {
         name = this.name,
         roleGroupId = this.roleGroup?.id,
         roleGroupName = this.roleGroup?.name ?: "No Group Assigned",
+        roleGroup = this.roleGroup?.name ?: "No Group Assigned",
         permissions = this.permissions
             ?.map { permission ->
                 PermissionSimpleResponse(

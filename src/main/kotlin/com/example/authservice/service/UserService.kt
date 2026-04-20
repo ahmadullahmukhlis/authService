@@ -2,6 +2,7 @@ package com.example.authservice.service
 
 import com.example.authservice.dto.response.Response
 import com.example.authservice.dto.user.CreateUserRequest
+import com.example.authservice.dto.user.UpdateUserRequest
 import com.example.authservice.dto.user.UserResponse
 import com.example.authservice.dto.user.toResponse
 import com.example.authservice.entity.UserEntity
@@ -41,22 +42,7 @@ class UserService(
         }
 
         // Handle photo
-        var photoPath: String? = null
-        if (photo != null && !photo.isEmpty) {
-            validateImage(photo)
-
-            // ensure upload folder exists
-            Files.createDirectories(uploadDir)
-
-            val ext = photo.originalFilename?.substringAfterLast('.', "jpg")
-            val fileName = UUID.randomUUID().toString() + "." + ext
-
-            val filePath = uploadDir.resolve(fileName)
-            photo.transferTo(filePath.toFile())
-
-            // store relative path in DB
-            photoPath = "images/$fileName"
-        }
+        val photoPath = storePhoto(photo)
 
         val user = UserEntity(
             username = request.username,
@@ -82,7 +68,7 @@ class UserService(
      * UPDATE USER (without photo for now)
      */
     @Transactional
-    fun update(id: Long, request: CreateUserRequest): Response {
+    fun update(id: Long, request: UpdateUserRequest, photo: MultipartFile? = null): Response {
         val user = userRepository.findByIdOrNull(id) ?: return Response(false, "User not found", null)
 
         val targetClientId = request.clientId ?: user.client?.clientId
@@ -95,7 +81,16 @@ class UserService(
         user.firstName = request.firstName
         user.lastName = request.lastName
 
+        // Update photo only if provided
+        val photoPath = storePhoto(photo)
+        if (photoPath != null) {
+            user.Photo = photoPath
+        }
+
         if (!request.password.isNullOrBlank()) {
+            if (request.password.length < 8) {
+                return Response(false, "Password must be at least 8 characters", null)
+            }
             user.password = passwordEncoder.encode(request.password)!!
         }
 
@@ -150,5 +145,23 @@ class UserService(
         if (file.isEmpty) throw RuntimeException("Photo is empty")
         if (file.size > 5 * 1024 * 1024) throw RuntimeException("Max image size is 5MB")
         if (file.contentType !in allowedTypes) throw RuntimeException("Only JPG, PNG, WEBP allowed")
+    }
+
+    private fun storePhoto(photo: MultipartFile?): String? {
+        if (photo == null || photo.isEmpty) return null
+
+        validateImage(photo)
+
+        // ensure upload folder exists
+        Files.createDirectories(uploadDir)
+
+        val ext = photo.originalFilename?.substringAfterLast('.', "jpg")
+        val fileName = UUID.randomUUID().toString() + "." + ext
+
+        val filePath = uploadDir.resolve(fileName)
+        photo.transferTo(filePath.toFile())
+
+        // store relative path in DB
+        return "images/$fileName"
     }
 }

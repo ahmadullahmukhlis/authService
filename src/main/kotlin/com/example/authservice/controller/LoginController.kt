@@ -12,12 +12,24 @@ class LoginController(
     private val authService: AuthService
 ) {
 
-    @PostMapping("/login")
-    fun login(
+    @PostMapping("/login", consumes = ["application/json"])
+    fun loginJson(
         @RequestHeader("X-Client-Id", required = false) clientId: String?,
         @RequestHeader("X-Client-Assertion", required = false) clientAssertion: String?,
         @Valid @RequestBody request: LoginDto
     ): Response {
+        return authService.login(clientId, clientAssertion, request)
+    }
+
+    @PostMapping("/login", consumes = ["application/x-www-form-urlencoded"])
+    fun loginForm(
+        @RequestHeader("X-Client-Id", required = false) clientId: String?,
+        @RequestHeader("X-Client-Assertion", required = false) clientAssertion: String?,
+        @RequestParam username: String,
+        @RequestParam password: String,
+        @RequestParam(required = false) mfaCode: String?
+    ): Response {
+        val request = LoginDto(username = username, password = password, mfaCode = mfaCode)
         return authService.login(clientId, clientAssertion, request)
     }
 

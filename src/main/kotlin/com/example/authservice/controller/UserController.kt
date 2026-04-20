@@ -3,6 +3,7 @@ package com.example.authservice.controller
 import com.example.authservice.dto.response.Response
 import com.example.authservice.dto.user.CreateUserRequest
 import com.example.authservice.dto.user.UserResponse
+import com.example.authservice.dto.user.UpdateUserRequest
 import com.example.authservice.security.ClientAssertionService
 import com.example.authservice.service.UserService
 import jakarta.validation.Valid
@@ -17,13 +18,28 @@ class UserController(
     private val clientAssertionService: ClientAssertionService
 ) {
 
-    // CREATE USER WITH PHOTO
-    @PostMapping(consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
-    fun createUser(
+    @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE])
+    fun createUserJson(
         @RequestHeader("X-Client-Id") clientId: String,
         @RequestHeader("X-Client-Assertion") clientAssertion: String,
-        @Valid @RequestPart("user") request: CreateUserRequest,
-        @RequestPart("photo", required = false) photo: MultipartFile?
+        @Valid @RequestBody request: CreateUserRequest
+    ): Response {
+        clientAssertionService.validate(clientId, clientAssertion)
+        val finalRequest = if (request.clientId.isNullOrBlank()) {
+            request.copy(clientId = clientId)
+        } else {
+            request
+        }
+        return userService.createUser(finalRequest, null)
+    }
+
+    // CREATE USER WITH PHOTO (multipart form fields)
+    @PostMapping(consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    fun createUserForm(
+        @RequestHeader("X-Client-Id") clientId: String,
+        @RequestHeader("X-Client-Assertion") clientAssertion: String,
+        @Valid @ModelAttribute request: CreateUserRequest,
+        @RequestParam("photo", required = false) photo: MultipartFile?
     ): Response {
         clientAssertionService.validate(clientId, clientAssertion)
         val finalRequest = if (request.clientId.isNullOrBlank()) {
@@ -53,12 +69,12 @@ class UserController(
         return userService.edit(id, clientId)
     }
 
-    @PutMapping("/{id}")
-    fun updateUser(
+    @PutMapping("/{id}", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    fun updateUserJson(
         @RequestHeader("X-Client-Id") clientId: String,
         @RequestHeader("X-Client-Assertion") clientAssertion: String,
         @PathVariable id: Long,
-        @Valid @RequestBody request: CreateUserRequest
+        @Valid @RequestBody request: UpdateUserRequest
     ): Response {
         clientAssertionService.validate(clientId, clientAssertion)
         val finalRequest = if (request.clientId.isNullOrBlank()) {
@@ -67,6 +83,23 @@ class UserController(
             request
         }
         return userService.update(id, finalRequest)
+    }
+
+    @PutMapping("/{id}", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    fun updateUserForm(
+        @RequestHeader("X-Client-Id") clientId: String,
+        @RequestHeader("X-Client-Assertion") clientAssertion: String,
+        @PathVariable id: Long,
+        @Valid @ModelAttribute request: UpdateUserRequest,
+        @RequestParam("photo", required = false) photo: MultipartFile?
+    ): Response {
+        clientAssertionService.validate(clientId, clientAssertion)
+        val finalRequest = if (request.clientId.isNullOrBlank()) {
+            request.copy(clientId = clientId)
+        } else {
+            request
+        }
+        return userService.update(id, finalRequest, photo)
     }
 
     @PatchMapping("/{id}/enable")
